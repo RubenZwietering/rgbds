@@ -1289,8 +1289,10 @@ static Token readIdentifier(char firstChar, bool raw) {
 
 	// Check for a keyword if the identifier is not raw and not a local label
 	if (!raw && tokenType != T_(LOCAL)) {
-		if (auto search = keywords.find(identifier); search != keywords.end()) {
-			return Token(search->second);
+		if (Symbol const *sym = sym_FindExactSymbol(identifier); !sym || !sym->isDefined()) {
+			if (auto search = keywords.find(identifier); search != keywords.end()) {
+				return Token(search->second);
+			}
 		}
 	}
 
@@ -1350,14 +1352,6 @@ static std::pair<Symbol const *, std::shared_ptr<std::string>> readInterpolation
 	if (identifier.starts_with('#')) {
 		// Skip a '#' raw symbol prefix, but after expanding any nested interpolations.
 		identifier.erase(0, 1);
-	} else if (keywords.find(identifier) != keywords.end()) {
-		// Don't allow symbols that alias keywords without a '#' prefix.
-		error(
-		    "Interpolated symbol `%s` is a reserved keyword; add a '#' prefix to use it as a raw "
-		    "symbol",
-		    identifier.c_str()
-		);
-		return {nullptr, nullptr};
 	}
 
 	if (Symbol const *sym = sym_FindScopedValidSymbol(identifier); !sym || !sym->isDefined()) {
@@ -1919,6 +1913,10 @@ static Token yylex_NORMAL() {
 				reportGarbageCharacters(c);
 				break;
 			}
+
+			raw |= lexerState->lastToken == T_(POP_MACRO)
+				|| lexerState->lastToken == T_(OP_DEF)
+				|| lexerState->lastToken == T_(POP_REDEF);
 
 			Token token = readIdentifier(c, raw);
 

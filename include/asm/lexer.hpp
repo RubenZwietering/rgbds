@@ -84,6 +84,7 @@ struct LexerState {
 	LexerMode mode;
 	bool atLineStart;
 	uint32_t lineNo;
+	int secondLastToken;
 	int lastToken;
 	int nextToken;
 

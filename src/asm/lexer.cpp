@@ -268,6 +268,7 @@ bool lexer_AtTopLevel() {
 void LexerState::clear(uint32_t lineNo_) {
 	mode = LEXER_NORMAL;
 	atLineStart = true;
+	secondLastToken = T_(YYEOF);
 	lastToken = T_(YYEOF);
 	nextToken = 0;
 
@@ -1915,8 +1916,10 @@ static Token yylex_NORMAL() {
 			}
 
 			raw |= lexerState->lastToken == T_(POP_MACRO)
+				|| (lexerState->secondLastToken == T_(POP_MACRO) && lexerState->lastToken == T_(QUESTIONMARK))
 				|| lexerState->lastToken == T_(POP_PURGE)
 				|| lexerState->lastToken == T_(OP_DEF)
+				|| (lexerState->secondLastToken == T_(OP_DEF) && lexerState->lastToken == T_(LPAREN))
 				|| lexerState->lastToken == T_(POP_REDEF);
 
 			Token token = readIdentifier(c, raw);
@@ -2266,6 +2269,7 @@ yy::parser::symbol_type yylex() {
 	if (token.type == T_(YYEOF) && !lexerState->capturing) {
 		token.type = T_(EOB);
 	}
+	lexerState->secondLastToken = lexerState->lastToken;
 	lexerState->lastToken = token.type;
 	lexerState->atLineStart = token.type == T_(NEWLINE) || token.type == T_(EOB);
 
